@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang = en>
+<head>
+    <meta charset="UTF-8">
+    <title>Speed of Speech Perception</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+            background-color: #a9c2ce;
+            color: #222;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1{
+            margin-top: 20px;
+        }
+        video {
+            width: 800px;
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+        }
+        input[type = 'range']{
+            -webkit-appearance: none;
+            width: 250px;
+            height: 6px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+        input[type = 'range']::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #79b8fb;
+        }
+        button {
+            padding: 6px 12px;
+            font-size: 1rem;
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #79b8fb;
+            color: black;
+        }
+        #speedDisplay {
+            min-width: 50px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="introScreen" style="padding:50px; max-width: 1000px; margin: 0 auto;">
+            <h2 style="text-align: center; margin-bottom: 30px";>Welcome to the experiment.</h2>
+            <br>
+            <p>This experiment is designed to test your ability to comprehend speech at increasing video playback speeds.</p>
+            <p>When you are ready, press play on the video.</p>
+            <p>You can adjust the playback speed using the <strong>+</strong> and <strong>-</strong> or by using the slider beneath the video.</p>
+            <p>Use <strong>Reset</strong> to return the playback speed to 1.0x.</p>
+            <p>Stop the video as soon as you feel you can no longer understand the speech.</p>
+            <br>
+            <br>
+            <p style="text-align: center; margin-top: 30px";><em>Press any key to begin.</em></p>
+    </div>
+
+    <div id="experimentContainer" style="display: none;">
+        <h1>Please listen to the following video and adjust video speed below.</h1>
+        <video id ="myVideo" controls>
+            <source src ="video.mp4" type = "video/mp4">
+            Your browser does not support the video tag.
+         </video>
+         
+         <div class="controls">
+            <label for="speedSlider">Playback Speed:</label>
+            <button id="decreaseSpeedBtn">-</button>
+            <input id="speedSlider" type="range" min="0.25" max="4.0" step="0.25" value="1.0">
+            <button id="increaseSpeedBtn">+</button>
+            <span id="speedDisplay">1.00x</span>
+            <button id="resetBtn">Reset Speed</button>
+         </div>
+
+         <div style="width: 100%; text-align: right; margin-top: 40px;">
+            <button id="finishBtn">Finish Experiment</button>
+         </div>
+    </div>
+
+    <div id="thankYouMessage" style="display: none; text-align: center; margin-top: 50px;">
+        <h2>Thank you for participating!</h2>
+        <p>Your responses have been recorded. You may now close this tab.</p>
+
+    <script>
+        document.addEventListener("keydown", function(){
+            document.getElementById("introScreen").style.display = "none";
+            document.getElementById("experimentContainer").style.display = "block";
+        },{once:true});
+    </script>
+
+    <script>
+        // Get references to the video, slider, display, and buttons
+        const video = document.getElementById("myVideo");
+        const slider = document.getElementById("speedSlider");
+        const display = document.getElementById("speedDisplay");
+        const resetBtn = document.getElementById("resetBtn");
+        const increaseBtn = document.getElementById("increaseSpeedBtn");
+        const decreaseBtn = document.getElementById("decreaseSpeedBtn");
+        const finishBtn = document.getElementById("finishBtn");
+
+        //Update video speed display and playback rate
+        function updateSpeedDisplay(speed) {
+            speed = Math.max(0.25, Math.min(speed, 4.0)); // clamp speed between 0.25 and 4.0
+            video.playbackRate = speed;
+            slider.value = speed;
+            display.textContent = speed.toFixed(2) + "x";
+        }
+
+        slider.addEventListener("input", function() {
+            const speed = parseFloat(slider.value);
+            updateSpeedDisplay(speed);
+        });
+
+        resetBtn.addEventListener("click", function () {
+            slider.value = 1.0;
+            video.playbackRate = 1.0;
+            display.textContent = "1.00x";
+        });
+
+        increaseBtn.addEventListener("click", function () {
+            let speed = parseFloat(slider.value);
+            updateSpeedDisplay(speed + 0.25);
+        });
+
+        decreaseBtn.addEventListener("click", function () {
+            let speed = parseFloat(slider.value);
+            updateSpeedDisplay(speed - 0.25);
+         });
+        
+        finishBtn.addEventListener("click", function() {
+            document.getElementById("experimentContainer").style.display = "none";
+            document.getElementById("thankYouMessage").style.display = "block";
+        });
+    </script>
+    
+</body>
+</html>
