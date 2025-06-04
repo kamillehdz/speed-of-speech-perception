@@ -98,7 +98,15 @@
             <span id="speedDisplay">1.00x</span>
             <button id="resetBtn">Reset Speed</button>
          </div>
+
+         <div style="width: 100%; text-align: right; margin-top: 40px;">
+            <button id="finishBtn">Finish Experiment</button>
+         </div>
     </div>
+
+    <div id="thankYouMessage" style="display: none; text-align: center; margin-top: 50px;">
+        <h2>Thank you for participating!</h2>
+        <p>Your responses have been recorded. You may now close this tab.</p>
 
     <script>
         document.addEventListener("keydown", function(){
@@ -115,6 +123,7 @@
         const resetBtn = document.getElementById("resetBtn");
         const increaseBtn = document.getElementById("increaseSpeedBtn");
         const decreaseBtn = document.getElementById("decreaseSpeedBtn");
+        const finishBtn = document.getElementById("finishBtn");
 
         //Update video speed display and playback rate
         function updateSpeedDisplay(speed) {
@@ -144,6 +153,11 @@
             let speed = parseFloat(slider.value);
             updateSpeedDisplay(speed - 0.25);
          });
+        
+        finishBtn.addEventListener("click", function() {
+            document.getElementById("experimentContainer").style.display = "none";
+            document.getElementById("thankYouMessage").style.display = "block";
+        });
     </script>
     
 </body>
