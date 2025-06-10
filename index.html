@@ -84,38 +84,62 @@
     </div>
 
     <div id="experimentContainer" style="display: none;">
-        <h1>Please listen to the following video and adjust video speed below.</h1>
-        <video id ="myVideo" controls>
-            <source src ="video.mp4" type = "video/mp4">
-            Your browser does not support the video tag.
-         </video>
+        <div class="trialinfo">
+            <h2>Trial <span id="trialNumber">1</span> of 20</h2>
+            <p>Please listen and adjust video speed below.</p>
+        </div>
+        <div id="mediaContainer">
+            <video id ="myVideo" controls>
+                <source src ="video.mp4" type = "video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
          
          <div class="controls">
             <label for="speedSlider">Playback Speed:</label>
             <button id="decreaseSpeedBtn">-</button>
-            <input id="speedSlider" type="range" min="0.25" max="4.0" step="0.25" value="1.0">
+            <input id="speedSlider" type="range" min="0.10" max="4.0" step="0.10" value="1.0">
             <button id="increaseSpeedBtn">+</button>
             <span id="speedDisplay">1.00x</span>
             <button id="resetBtn">Reset Speed</button>
          </div>
 
          <div style="width: 100%; text-align: right; margin-top: 40px;">
-            <button id="finishBtn">Finish Experiment</button>
+            <button id="nextBtn";>Next</button>
          </div>
     </div>
 
-    <div id="thankYouMessage" style="display: none; text-align: center; margin-top: 50px;">
-        <h2>Thank you for participating!</h2>
-        <p>Your responses have been recorded. You may now close this tab.</p>
+    <div id="completionScreen" style="display: none; text-align: center; margin-top: 50px;">
+        <h2>Experiment Complete.</h2>
+        <p>Thank you for participating.</p>
+    </div>
 
     <script>
-        document.addEventListener("keydown", function(){
-            document.getElementById("introScreen").style.display = "none";
-            document.getElementById("experimentContainer").style.display = "block";
-        },{once:true});
-    </script>
+        //List of video files
+        const trialMedia = [
+            {type: "video", src:'video.mp4'},
+            {type: "video", src:'video2.mp4'},
+            {type: "video", src:'video3.mp4'},
+            {type: "video", src:'video4.mp4'},
+            {type: "video", src:'video5.mp4'},
+            {type: "video", src:'video6.mp4'},
+            {type: "video", src:'video7.mp4'},
+            {type: "video", src:'video8.mp4'},
+            {type: "video", src:'video9.mp4'},
+            {type: "video", src:'video10.mp4'},
+            {type: "video", src:'audio.mp3'},
+            {type: "video", src:'audio2.mp3'},
+            {type: "video", src:'audio3.mp3'},
+            {type: "video", src:'audio4.mp3'},
+            {type: "video", src:'audio5.mp3'},
+            {type: "video", src:'audio6.mp3'},
+            {type: "video", src:'audio7.mp3'},
+            {type: "video", src:'audio8.mp3'},
+            {type: "video", src:'audio9.mp3'},
+            {type: "video", src:'audio10.mp3'}
+        ];
 
-    <script>
+        let currentTrial = 0;
         // Get references to the video, slider, display, and buttons
         const video = document.getElementById("myVideo");
         const slider = document.getElementById("speedSlider");
@@ -123,11 +147,16 @@
         const resetBtn = document.getElementById("resetBtn");
         const increaseBtn = document.getElementById("increaseSpeedBtn");
         const decreaseBtn = document.getElementById("decreaseSpeedBtn");
-        const finishBtn = document.getElementById("finishBtn");
+        const maxSpeedInput = document.getElementById("maxSpeedInput");
+        const nextBtn = document.getElementById("nextBtn");
+        const trialNumberDisplay = document.getElementById("trialNumber");
+        
+        const savedSpeed = parseFloat(localStorage.getItem("savedSpeed") || "1.0");
+        updateSpeedDisplay(savedSpeed);
 
         //Update video speed display and playback rate
         function updateSpeedDisplay(speed) {
-            speed = Math.max(0.25, Math.min(speed, 4.0)); // clamp speed between 0.25 and 4.0
+            speed = Math.max(0.10, Math.min(speed, 4.0)); // clamp speed between 0.10 and 4.0
             video.playbackRate = speed;
             slider.value = speed;
             display.textContent = speed.toFixed(2) + "x";
@@ -136,8 +165,29 @@
         slider.addEventListener("input", function() {
             const speed = parseFloat(slider.value);
             updateSpeedDisplay(speed);
+            localStorage.setItem("playbackSpeed", speed);
         });
 
+        nextBtn.addEventListener("click", () => {
+            currentTrial++;
+            if (currentTrial < trialMedia.length) {
+                const nextFile = trialMedia[currentTrial];
+                const mediaSource = document.getElementById("myVideo");
+                mediaSource.src = nextFile.src;
+                mediaSource.load();
+                mediaSource.playbackRate = parseFloat(localStorage.getItem("playbackSpeed") || "1.0");
+                updateSpeedDisplay(mediaSource.playbackRate);
+                trialNumberDisplay.textContent = currentTrial + 1;
+            } else {
+                document.getElementById("experimentContainer").style.display = "none";
+                document.getElementById("completionScreen").style.display = "block";
+            }
+         });
+        
+        document.addEventListener("keydown", function(){
+            document.getElementById("introScreen").style.display = "none";
+            document.getElementById("experimentContainer").style.display = "block";
+        },{once:true});
         resetBtn.addEventListener("click", function () {
             slider.value = 1.0;
             video.playbackRate = 1.0;
@@ -146,18 +196,25 @@
 
         increaseBtn.addEventListener("click", function () {
             let speed = parseFloat(slider.value);
-            updateSpeedDisplay(speed + 0.25);
+            updateSpeedDisplay(speed + 0.10);
         });
 
         decreaseBtn.addEventListener("click", function () {
             let speed = parseFloat(slider.value);
-            updateSpeedDisplay(speed - 0.25);
+            updateSpeedDisplay(speed - 0.10);
          });
         
-        finishBtn.addEventListener("click", function() {
-            document.getElementById("experimentContainer").style.display = "none";
-            document.getElementById("thankYouMessage").style.display = "block";
+        maxSpeedInput.addEventListener("input", function() {
+            const value = maxSpeedInput.value.trim();
+            const isValid = !isNaN(value) && parseFloat(value) >= 0.10 && parseFloat(value) <= 4.0;
+
+            if (isValid) {
+                nextBtn.style.display = "inline-block";
+            } else {
+                nextBtn.style.display = "none"; 
+            }
         });
+
     </script>
     
 </body>
