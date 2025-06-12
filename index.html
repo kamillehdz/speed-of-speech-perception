@@ -87,11 +87,11 @@
 
     <div id="experimentContainer" style="display: none;">
         <div class="trialinfo">
-            <h2>Trial <span id="trialNumber">1</span> of 20</h2>
+            <h2>Trial <span id="trialNumber">1</span> of 10</h2>
             <p>Please listen and adjust video speed below.</p>
         </div>
         <div id="mediaContainer">
-            <video id ="myVideo" controls>
+            <video id ="myVideo" controls preload = auto>
                 <source src ="video.mp4" type = "video/mp4">
                 Your browser does not support the video tag.
             </video>
@@ -107,7 +107,7 @@
          </div>
 
          <div style="width: 100%; text-align: right; margin-top: 40px;">
-            <button id="nextBtn";>Next</button>
+            <button id="nextBtn";>Click when you reach your max speed.</button>
          </div>
     </div>
 
@@ -120,25 +120,7 @@
         //List of video files
         const trialMedia = [
             {type: "video", src:'video.mp4'},
-            {type: "video", src:'video2.mp4'},
-            {type: "video", src:'video3.mp4'},
-            {type: "video", src:'video4.mp4'},
-            {type: "video", src:'video5.mp4'},
-            {type: "video", src:'video6.mp4'},
-            {type: "video", src:'video7.mp4'},
-            {type: "video", src:'video8.mp4'},
-            {type: "video", src:'video9.mp4'},
-            {type: "video", src:'video10.mp4'},
             {type: "video", src:'audio.mp3'},
-            {type: "video", src:'audio2.mp3'},
-            {type: "video", src:'audio3.mp3'},
-            {type: "video", src:'audio4.mp3'},
-            {type: "video", src:'audio5.mp3'},
-            {type: "video", src:'audio6.mp3'},
-            {type: "video", src:'audio7.mp3'},
-            {type: "video", src:'audio8.mp3'},
-            {type: "video", src:'audio9.mp3'},
-            {type: "video", src:'audio10.mp3'}
         ];
 
         let currentTrial = 0;
@@ -149,12 +131,25 @@
         const resetBtn = document.getElementById("resetBtn");
         const increaseBtn = document.getElementById("increaseSpeedBtn");
         const decreaseBtn = document.getElementById("decreaseSpeedBtn");
-        const maxSpeedInput = document.getElementById("maxSpeedInput");
         const nextBtn = document.getElementById("nextBtn");
         const trialNumberDisplay = document.getElementById("trialNumber");
         
-        const savedSpeed = parseFloat(localStorage.getItem("savedSpeed") || "1.0");
-        updateSpeedDisplay(savedSpeed);
+        const savedSpeed = localStorage.getItem("videoSpeed") || "1.0";
+        const savedTime = localStorage.getItem("videoTime") || "0";
+        if (savedSpeed) {
+            video.playbackRate = parseFloat(savedSpeed);
+            slider.value = savedSpeed;
+            display.textContent = parseFloat(savedSpeed).toFixed(2) + "x";
+        }
+        if (savedTime) {
+            video.currentTime = parseFloat(savedTime);
+        }
+
+        slider.addEventListener('input', function() {
+            const speed = parseFloat(slider.value);
+            video.playbackRate = speed;
+            display.textContent = speed.toFixed(2) + 'x';
+        });
 
         //Update video speed display and playback rate
         function updateSpeedDisplay(speed) {
@@ -171,25 +166,55 @@
         });
 
         nextBtn.addEventListener("click", () => {
+            localStorage.setItem('lastPlaybackTime', video.currentTime);
+            localStorage.setItem('lastplaybackSpeed', video.playbackRate);
+            
             currentTrial++;
             if (currentTrial < trialMedia.length) {
                 const nextFile = trialMedia[currentTrial];
                 const mediaSource = document.getElementById("myVideo");
                 mediaSource.src = nextFile.src;
                 mediaSource.load();
-                mediaSource.playbackRate = parseFloat(localStorage.getItem("playbackSpeed") || "1.0");
-                updateSpeedDisplay(mediaSource.playbackRate);
+
+                mediaSource.onloadedmetadata = () => {
+                    const savedTime = parseFloat(localStorage.getItem('lastPlaybackTime') || "0");
+                    const savedSpeed = parseFloat(localStorage.getItem('lastplaybackSpeed') || "1.0");
+
+                    media.currentTime = savedTime;
+                    mediaSource.playbackRate = savedSpeed;
+                    updateSpeedDisplay(savedSpeed);
+                    mediaSource.play();
+                }
                 trialNumberDisplay.textContent = currentTrial + 1;
             } else {
                 document.getElementById("experimentContainer").style.display = "none";
                 document.getElementById("completionScreen").style.display = "block";
+                localStorage.removeItem('clear');
             }
          });
         
         document.addEventListener("keydown", function(){
             document.getElementById("introScreen").style.display = "none";
             document.getElementById("experimentContainer").style.display = "block";
-        },{once:true});
+
+            currentTrial = 0;
+            trialNumberDisplay.textContent = '1';
+            media.pause();
+            media.currentTime = 0;
+            media.playbackRate = 1.0;
+            updateSpeedDisplay(1.0);
+            slider.value = 1.0;
+            display.textContent = '1.00x';
+
+            localStorage.setItem('lastPlaybackTime');
+            localStorage.setItem('lastplaybackSpeed');
+
+            media.load();
+            media.play().catch((err => {
+                console.log("Autoplay blocked by browser, e");
+            }));
+        },{ once:true });
+
         resetBtn.addEventListener("click", function () {
             slider.value = 1.0;
             video.playbackRate = 1.0;
@@ -205,17 +230,28 @@
             let speed = parseFloat(slider.value);
             updateSpeedDisplay(speed - 0.10);
          });
-        
-        maxSpeedInput.addEventListener("input", function() {
-            const value = maxSpeedInput.value.trim();
-            const isValid = !isNaN(value) && parseFloat(value) >= 0.10 && parseFloat(value) <= 4.0;
 
-            if (isValid) {
-                nextBtn.style.display = "inline-block";
-            } else {
-                nextBtn.style.display = "none"; 
+        window.addEventListener('load', function(){
+            const savedSpeed = parseFloat(localStorage.getItem('lastPlaybackSpeed'));
+            const savedTime = parseFloat(localStorage.getItem('lastPlaybackTime'));
+            const video = document.getElementById("myVideo");
+            if (video) {
+                if (!isNaN(savedSpeed)) {
+                    video.playbackRate = savedSpeed;
+                }
+                if (!isNaN(savedTime)) {
+                    video.currentTime = savedTime;
+
+                    video.addEventListener('loadedmetadata', function() {
+                        video.currentTime = savedTime;
+                        video.play();
+                    });
+                } else {
+                    video.play();                
+                }
             }
-        });
+        })
+        
 
     </script>
     
