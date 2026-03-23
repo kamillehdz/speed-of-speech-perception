@@ -126,7 +126,7 @@
 <section id="volumeCheckScreen">
   <h2>Volume Check</h2>
   <p>Please ensure your volume is at a comfortable level.</p>
-  <video id="volumeCheckAudio" autoplay playsinline controls>
+  <video id="volumeCheckAudio" playsinline controls>
       <source src="https://raw.githubusercontent.com/kamillehdz/speed-of-speech-perception-1/main/volumecheck.mp4" type="video/mp4">
   </video>
   <button onclick="showSection('exampleVideoScreen')">Click to proceed to the next page</button>
@@ -135,7 +135,7 @@
 <!-- EXAMPLE VIDEO -->
 <section id="exampleVideoScreen">
   <h2>Example Video</h2>
-  <video autoplay playsinline controls>
+  <video playsinline controls>
     <source src="https://raw.githubusercontent.com/kamillehdz/speed-of-speech-perception/main/example_video.mp4" type="video/mp4">
   </video>
   <button onclick="showSection('trial1')">Continue to Experiment</button>
@@ -217,7 +217,7 @@
 </section>
 
 <script>
-  let experimentStartTime = null;
+let experimentStartTime = null; 
 // ---------- Subject + Version Assignment ----------
 function getSubjectNumber() {
   let n = localStorage.getItem("subjectCounter");
@@ -241,12 +241,8 @@ const API_URL = "https://sheetdb.io/api/v1/tar154b79cjl1";
 const MAX_LOOPS = 100;
 const trialLoopCounts = {};
 
-const trialLabels = {
-  trial1: "Audio only (A)",
-  trial2: "Farewell + Hand",
-  trial3: "Welfare + Hand",
-  trial4: "AV Farewell"
-};
+let trialLabels = {};
+
 
 // -------- Corrected Trial Orders --------
 
@@ -323,6 +319,22 @@ function storeIDandContinue() {
     vid3.src = "https://raw.githubusercontent.com/kamillehdz/speed-of-speech-perception-1/main/video2.mp4"; // Farewell
     }
 
+  if (experimentVersion === "Version1") {
+  trialLabels = {
+    trial1: "Audio only (A)",
+    trial2: "Farewell + Hand",
+    trial3: "Welfare + Hand",
+    trial4: "AV Farewell"
+  };
+} else {
+  trialLabels = {
+    trial1: "Audio only (A)",
+    trial2: "Welfare + Hand",  // vid2 source is swapped to Welfare for Version2
+    trial3: "Farewell + Hand", // vid3 source is swapped to Farewell for Version2
+    trial4: "AV Farewell"
+  };
+}
+
 // Force the browser to load the swapped videos immediately
 vid2.load();
 vid3.load();
@@ -357,21 +369,29 @@ function autoLoopVideo(videoId, nextSectionId, progressId) {
   }
 
   vid.onended = null;
+  vid.ontimeupdate = null;
+
+  let isSeeking = false;  // guard flag
 
   vid.play().catch(() => console.log("Autoplay requires user interaction"));
 
-  vid.onended = () => {
-    trialLoopCounts[videoId]++;
+  vid.ontimeupdate = () => {
+    if (isSeeking) return;  // ignore events fired right after seek
+    if (vid.duration && vid.currentTime >= vid.duration - 0.08) {
+      trialLoopCounts[videoId]++;
+      bar.style.width = (trialLoopCounts[videoId] / MAX_LOOPS) * 100 + "%";
 
-    bar.style.width =
-      (trialLoopCounts[videoId] / MAX_LOOPS) * 100 + "%";
-
-    if (trialLoopCounts[videoId] < MAX_LOOPS) {
-      vid.currentTime = 0.0002; // tiny offset to reduce visible pause
-      vid.play();
-    } else {
-      console.log(`${videoId} completed ${MAX_LOOPS} loops`);
-      showSection(nextSectionId);
+      if (trialLoopCounts[videoId] < MAX_LOOPS) {
+        isSeeking = true;
+        vid.currentTime = 0;
+        vid.play().then(() => {
+          setTimeout(() => { isSeeking = false; }, 200); // re-enable after 200ms
+        }).catch(() => { isSeeking = false; });
+      } else {
+        vid.ontimeupdate = null;
+        console.log(`${videoId} completed ${MAX_LOOPS} loops`);
+        showSection(nextSectionId);
+      }
     }
   };
 }
@@ -390,7 +410,7 @@ document.addEventListener("keydown", (e) => {
 
   const sectionId = activeSection.id;
   const trialLabel = trialLabels[sectionId] || "Unknown condition";
-  const globalTime = ((performance.now() - experimentStartTime) / 1000).toFixed(3);
+  const videoTime = activeVideo.currentTime.toFixed(2).padEnd(5, "0");
   const currentLoop = trialLoopCounts[activeVideo.id] || 0;
 
   const now = new Date();
@@ -407,7 +427,7 @@ document.addEventListener("keydown", (e) => {
     sectionId: sectionId,
     trial: trialLabel,
     keyPressed: key,
-    globalTime: globalTime,
+    videoTime: videoTime,
     loopNumber: currentLoop + 1,
     timestampEST: formattedTime
   };
@@ -425,20 +445,26 @@ document.addEventListener("keydown", (e) => {
 
 // ---------- Navigation Helpers ----------
 function showSection(id) {
-  // Start global timer when entering trial1
   if (id === "trial1" && experimentStartTime === null) {
     experimentStartTime = performance.now();
   }
-  
+
   document.querySelectorAll("video").forEach(v => {
     v.pause();
     v.currentTime = 0;
   });
+
   document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
   const target = document.getElementById(id);
   if (target) {
     target.classList.add("active");
     window.scrollTo(0, 0);
+
+    // Explicitly play any video in the newly shown section
+    const vid = target.querySelector("video");
+    if (vid) {
+      vid.play().catch(err => console.warn("Autoplay blocked:", err));
+    }
   }
 }
 
